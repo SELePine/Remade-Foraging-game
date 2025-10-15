@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Foraging Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --arena-w: 960px;
+      --arena-h: 600px;
+      --bg: #f7f7f7;
+      --green: #77aa55;
+      --bush: #4e8a3c;
+      --purple: #8b5cf6;
+      --orange: #fb923c;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --hud: rgba(0,0,0,0.7);
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: #111;
+      height: 100%;
+      overflow: hidden;
+    }
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hidden { display: none !important; }
+    .column { max-width: 900px; padding: 24px; line-height: 1.35; }
+    h1, h2, h3 { margin: 0 0 12px; font-weight: 700; }
+    p { margin: 8px 0; }
+    button {
+      appearance: none;
+      border: none;
+      background: #111;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .center { text-align: center; }
+
+    #arenaWrap {
+      position: relative;
+      width: var(--arena-w);
+      height: var(--arena-h);
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      background: #e8f5e9;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+    #arena { position: absolute; inset: 0; }
+    .entity {
+      position: absolute;
+      width: 18px; height: 18px;
+      transform: translate(-50%, -50%);
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    #player { background: var(--red); z-index: 5; }
+    #bot { background: var(--blue); z-index: 5; }
+    .bush {
+      position: absolute;
+      width: 50px; height: 50px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #8bc34a 0%, #689f38 60%, #4e8a3c 100%);
+      border: 2px solid rgba(0,0,0,0.07);
+      box-shadow: inset 0 4px 10px rgba(255,255,255,0.2), 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .berry {
+      position: absolute;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      box-shadow: inset 0 2px 3px rgba(255,255,255,0.35), 0 1px 2px rgba(0,0,0,0.15);
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .berry.purple { background: var(--purple); }
+    .berry.orange { background: var(--orange); }
+  </style>
+</head>
+<body>
+  <h1>Revised Foraging Game</h1>
+  <script>
+  alert("This is a placeholder simplified version — the actual game logic with new timing, bushes, and bot behavior will be embedded here.");
+  </script>
+</body>
+</html>
