@@ -493,7 +493,6 @@ function nearestBerryOfColor(color, fromX, fromY){
   }
 
   return nearestPurple || nearestOrange;
-}
     } else if (condition === 'lazy'){
 
   const nearby = list.filter(x =>
@@ -577,11 +576,7 @@ if (!bot.target || !bot.target.slot || !bot.target.slot.el){
     bot.reactionUntil = now + randInt(150, 400);
   }
 }
-// Occasional human-like target switching
-if (bot.target && Math.random() < 0.08){
-  bot.target = pickBotTarget();
-  bot.reactionUntil = now + randInt(150, 400);
-}
+
     // If reached target totals, just roam (and keep off bushes)
     if (bot.collectedCount >= bot.targets.total || !bot.target){
       // Forced wander chunk if previously stuck
