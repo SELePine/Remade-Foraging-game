@@ -516,7 +516,7 @@ function updateBotAI(dt, now){
 
   if (state !== 'playing') return;
   const speed = BOT_SPEEDS[condition] || 100;
-
+updateBotCollectPermission();
   // Human reaction delay
   if (now < bot.reactionUntil){
     bot.vx = 0;
@@ -569,7 +569,7 @@ if (!bot.target || !bot.target.slot || !bot.target.slot.el){
   }
 }
 
-  if (bot.target && Math.random() < 0.08){
+  if (bot.target && Math.random() < 0.04){
   const newTarget = pickBotTarget();
   if (newTarget){
     bot.target = newTarget;
@@ -578,7 +578,7 @@ if (!bot.target || !bot.target.slot || !bot.target.slot.el){
 }
 
     // If reached target totals, just roam (and keep off bushes)
-    if (bot.collectedCount >= bot.targets.total || !bot.target){
+    if (bot.collectedCount >= botDynamicTarget() || !bot.target){
       // Forced wander chunk if previously stuck
       if (now < bot.wanderUntil){
         bot.vx = bot.wanderVX; bot.vy = bot.wanderVY;
@@ -603,8 +603,7 @@ const dy = ty - bot.y;
 const d = Math.hypot(dx,dy);
 
 if (d > 1){
-  const noise = 0.12;
-
+const noise = 0.06;
   bot.vx = (dx / d) * speed + (Math.random() - 0.5) * speed * noise;
   bot.vy = (dy / d) * speed + (Math.random() - 0.5) * speed * noise;
 } else {
@@ -660,10 +659,10 @@ if (d > 1){
   if (isBot && !bot.canCollect) continue;
 
   // Human-like hesitation before collecting
-  if (isBot && Math.random() < 0.05){
-    continue;
-  }
-
+ if (isBot && Math.random() < 0.05){
+  bot.vx *= 0.3;
+  bot.vy *= 0.3;
+}
   if (slot.el && slot.el.parentNode) slot.el.parentNode.removeChild(slot.el);
 
           if (slot.el && slot.el.parentNode) slot.el.parentNode.removeChild(slot.el);
