@@ -127,7 +127,11 @@
   // ===== Config & constants =====
   const ARENA_W = 960, ARENA_H = 600;
   const PLAYER_SPEED = 130;
-  const BOT_SPEEDS = { lazy: 130, mean: 130, control: 130 }; // same pace as player
+  const BOT_SPEEDS = {
+  lazy: randInt(85,95),
+  mean: randInt(125,135),
+  control: randInt(125,135)
+};
   const BUSH_COUNT = 24;
   const BUSH_RADIUS = 25;
   const BERRY_RADIUS = 6;
@@ -189,7 +193,7 @@
 
   // Entities
   const player = { x: ARENA_W/2 - 100, y: ARENA_H/2, vx:0, vy:0, el:null, score:0, purple:0, orange:0, idleTime:0, movedDist:0, lastPos:null };
-  const bot = { x: ARENA_W/2 + 100, y: ARENA_H/2, vx:0, vy:0, el:null, score:0, purple:0, orange:0, idleTime:0, target:null, mode:'idle', modeUntil:0, collectedCount:0, lastMoveTs: performance.now(), canCollect:true, targets:null, lastProgressCheck: performance.now(), prevDistToTarget: Infinity, wanderUntil:0, wanderVX:0, wanderVY:0 };
+  const bot = { x: ARENA_W/2 + 100, y: ARENA_H/2, vx:0, vy:0, el:null, score:0, purple:0, orange:0, idleTime:0, target:null, mode:'idle', modeUntil:0, workUntil:0, restUntil: 0, collectedCount:0, lastMoveTs: performance.now(), canCollect:true, targets:null, lastProgressCheck: performance.now(), prevDistToTarget: Infinity, wanderUntil:0, wanderVX:0, wanderVY:0, reactionUntil: 0, retargetDelay: 0};
 
   // Bushes
   const bushes = [];
@@ -206,7 +210,26 @@
 
   function createEntityEl(id, className){ const el = document.createElement('div'); el.id = id||''; el.className = `entity ${className||''}`.trim(); arena.appendChild(el); return el; }
   function setEntityPos(ent){ if (!ent.el) return; ent.el.style.left = `${ent.x}px`; ent.el.style.top = `${ent.y}px`; }
+function playerTotalBerries(){
+  return player.purple + player.orange;
+}
+  function botDynamicTarget(){
+  const p = playerTotalBerries();
 
+  if (condition === 'lazy'){
+    return Math.floor(p * 0.6);
+  }
+
+  if (condition === 'control'){
+    return Math.floor(p * 1.0);
+  }
+
+  if (condition === 'mean'){
+    return Math.floor(p * 1.3);
+  }
+
+  return p;
+}
   // ===== Bush helpers =====
   function isOnBush(x,y){
      
@@ -424,7 +447,17 @@
     }
     return list;
   }
+function nearestBerryOfColor(color, fromX, fromY){
+  const list = allVisibleBerries().filter(x => x.color === color);
+  if (!list.length) return null;
 
+  list.sort((a,b) =>
+    dist2(fromX,fromY,a.bush.x,a.bush.y) -
+    dist2(fromX,fromY,b.bush.x,b.bush.y)
+  );
+
+  return list[0];
+}
   function nearestOf(list, fromX, fromY, predicate){
     const filtered = predicate ? list.filter(predicate) : list.slice();
     if (!filtered.length) return null;
@@ -440,19 +473,38 @@
 
     if (!list.length) return null;
 
-    if (bot.collectedCount >= bot.targets.total){
-      return null;
-    }
+   if (bot.collectedCount >= botDynamicTarget()){
+  return null;
+}
 
-    if (condition === 'mean'){
-      if (bot.orange < bot.targets.orange){
-        return nearestOf(list, bot.x, bot.y, x => x.color === 'orange') || nearestOf(list, bot.x, bot.y, () => true);
-      } else {
-        return nearestOf(list, bot.x, bot.y, () => true);
-      }
+ if (condition === 'mean'){
+
+  const nearestPurple = nearestBerryOfColor('purple', bot.x, bot.y);
+  const nearestOrange = nearestBerryOfColor('orange', bot.x, bot.y);
+
+  // 40% of the time deliberately sabotage a nearby purple
+  if (nearestPurple && nearestOrange && Math.random() < 0.40){
+    return nearestOrange;
+  }
+
+  // Otherwise behave normally
+  if (bot.orange < bot.targets.orange){
+    return nearestOrange || nearestPurple;
+  }
+
+  return nearestPurple || nearestOrange;
+}
     } else if (condition === 'lazy'){
-      return nearestOf(list, bot.x, bot.y, x => x.color === 'purple') || null;
-    } else {
+
+  const nearby = list.filter(x =>
+    dist(bot.x, bot.y, x.bush.x, x.bush.y) < 180 &&
+    x.color === 'purple'
+  );
+
+  return nearby.length
+    ? nearestOf(nearby, bot.x, bot.y)
+    : null;
+} else {
       if (bot.orange < bot.targets.orange && Math.random() < 0.15){
         return nearestOf(list, bot.x, bot.y, x => x.color === 'orange') || nearestOf(list, bot.x, bot.y, x => x.color === 'purple');
       }
@@ -461,10 +513,22 @@
   }
 
   // ===== Bot AI & movement =====
-  function updateBotAI(dt, now){
+function updateBotAI(dt, now){
 
-    if (state !== 'playing') return;
-    const speed = BOT_SPEEDS[condition] || 100;
+  if (state !== 'playing') return;
+  const speed = BOT_SPEEDS[condition] || 100;
+
+  // Human reaction delay
+  if (now < bot.reactionUntil){
+    bot.vx = 0;
+    bot.vy = 0;
+    return;
+  }
+
+  // If we're nudging off a bush, honor that first
+  if (bot._offBushUntil && now < bot._offBushUntil){
+    return;
+  }
 
     // If we're nudging off a bush, honor that first
     if (bot._offBushUntil && now < bot._offBushUntil){
@@ -472,35 +536,52 @@
     }
 
     // Manage lazy pauses with off-bush safety
-    if (condition === 'lazy'){
-      if (now >= bot.modeUntil){
-        const doIdle = Math.random() < 0.7 || bot.collectedCount >= bot.targets.total;
-        if (doIdle){
-          bot.mode = 'idle';
-          bot.modeUntil = now + (Math.random() < 0.5 ? randInt(2000, 5000) : randInt(1200, 2400));
-          bot.target = null;
-          if (isOnBush(bot.x, bot.y)){
-            nudgeOffBush(bot, speed, OFF_BUSH_NUDGE_MS);
-          } else {
-            bot.vx = 0; bot.vy = 0;
-          }
-        } else {
-          bot.mode = 'seek';
-          bot.modeUntil = now + randInt(800, 1800);
-          bot.target = pickBotTarget();
-        }
-      }
-      if (bot.mode === 'idle' && !bot._offBushUntil){
-        // remain idle
-        return;
-      }
-    }
+   if (condition === 'lazy'){
 
-    // Mean/control: always target or wander
-    if (!bot.target || !bot.target.slot || !bot.target.slot.el){
-      bot.target = pickBotTarget();
-    }
+  if (bot.mode === 'work' && now > bot.workUntil){
+    bot.mode = 'rest';
+    bot.restUntil = now + randInt(3000, 7000);
+    bot.vx = 0;
+    bot.vy = 0;
+    bot.target = null;
+  }
 
+  if (bot.mode === 'rest' && now > bot.restUntil){
+    bot.mode = 'work';
+    bot.workUntil = now + randInt(4000, 8000);
+  }
+
+  if (bot.mode === 'rest'){
+    if (isOnBush(bot.x, bot.y)){
+      nudgeOffBush(bot, speed, OFF_BUSH_NUDGE_MS);
+    }
+    return;
+  }
+
+}
+
+  // Mean/control: always target or wander
+if (!bot.target || !bot.target.slot || !bot.target.slot.el){
+  bot.target = pickBotTarget();
+
+  // Human-like reaction delay when choosing a new target
+  if (bot.target){
+    bot.reactionUntil = now + randInt(200, 700);
+  }
+}
+
+  if (bot.target && Math.random() < 0.08){
+  const newTarget = pickBotTarget();
+  if (newTarget){
+    bot.target = newTarget;
+    bot.reactionUntil = now + randInt(150, 400);
+  }
+}
+// Occasional human-like target switching
+if (bot.target && Math.random() < 0.08){
+  bot.target = pickBotTarget();
+  bot.reactionUntil = now + randInt(150, 400);
+}
     // If reached target totals, just roam (and keep off bushes)
     if (bot.collectedCount >= bot.targets.total || !bot.target){
       // Forced wander chunk if previously stuck
@@ -519,20 +600,22 @@
       return;
     }
 
-    // Navigate to target
-    const tx = bot.target.bush.x - 25 + bot.target.slot.rx;
-    const ty = bot.target.bush.y - 25 + bot.target.slot.ry;
-    const dx = tx - bot.x;
-    const dy = ty - bot.y;
-    const d = Math.hypot(dx,dy);
+  // Navigate to target
+const tx = bot.target.bush.x - 25 + bot.target.slot.rx;
+const ty = bot.target.bush.y - 25 + bot.target.slot.ry;
+const dx = tx - bot.x;
+const dy = ty - bot.y;
+const d = Math.hypot(dx,dy);
 
-    if (d > 1){
-      bot.vx = (dx / d) * speed;
-      bot.vy = (dy / d) * speed;
-    } else {
-      bot.vx = 0; bot.vy = 0;
-    }
+if (d > 1){
+  const noise = 0.12;
 
+  bot.vx = (dx / d) * speed + (Math.random() - 0.5) * speed * noise;
+  bot.vy = (dy / d) * speed + (Math.random() - 0.5) * speed * noise;
+} else {
+  bot.vx = 0;
+  bot.vy = 0;
+}
     // Always-active watchdog for mean bot
     if (condition === 'mean'){
       // Check progress toward target
@@ -565,7 +648,7 @@
 
   // ===== Per-berry collection =====
   function updateBotCollectPermission(){
-    bot.canCollect = bot.collectedCount < bot.targets.total;
+    bot.canCollect = bot.collectedCount < botDynamicTarget();
   }
 
   function checkCollectEntity(ent, who){
@@ -578,7 +661,15 @@
         const worldY = b.y + (slot.ry - 25);
         const d = dist(ent.x, ent.y, worldX, worldY);
         if (d <= (BERRY_RADIUS + ENTITY_HALF)){
-          if (isBot && !bot.canCollect) continue;
+
+  if (isBot && !bot.canCollect) continue;
+
+  // Human-like hesitation before collecting
+  if (isBot && Math.random() < 0.05){
+    continue;
+  }
+
+  if (slot.el && slot.el.parentNode) slot.el.parentNode.removeChild(slot.el);
 
           if (slot.el && slot.el.parentNode) slot.el.parentNode.removeChild(slot.el);
           const clr = slot.color;
@@ -743,6 +834,8 @@
     setEntityPos(player); setEntityPos(bot);
 
     bot.targets = setupBotTargets();
+    bot.mode = 'work';
+bot.workUntil = performance.now() + randInt(4000,8000);
     updateBotCollectPermission();
 
     countdownLeft = COUNTDOWN_SEC;
