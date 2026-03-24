@@ -68,7 +68,7 @@
     <div class="panel">
       <div class="column">
         <h1>Welcome to the foraging game!</h1>
-        <p>You (red square) and your partner (blue square) will collect berries from bushes. Use WASD to move. Purple berries earn points; orange berries lose points. You'll play a 5-minute round and then continue to a short survey.</p>
+        <p>You (red square) and your partner (blue square) will collect berries from bushes. Use WASD to move. Purple berries earn points; orange berries lose points. You'll play a 3-minute round and then continue to a short survey.</p>
         <div class="center"><button id="startTutorialBtn">Start Tutorial</button></div>
       </div>
     </div>
@@ -117,7 +117,7 @@
       <div class="spacer"></div>
       <div class="card"><div class="label">Combined total</div><div class="value" id="endCombined">0</div></div>
       <div class="spacer"></div>
-      <div class="muted">Please wait at least 10 seconds. Then click the arrow to continue to the survey.</div>
+      <div class="muted">Please click the arrow to return to the survey.</div>
       <div id="toSurveyBtn" class="arrowBtn" title="Continue">➜</div>
     </div>
   </div>
@@ -137,8 +137,8 @@
   const BERRY_RADIUS = 6;
   const ENTITY_HALF = 9;
   const MIN_PLAYER_BUSH_DIST = BUSH_RADIUS + ENTITY_HALF + 10;
-  const BERRY_SPAWN_INTERVAL_MS = 500; // fast spawn
-  const GAME_LENGTH_SEC = 300;
+  const BERRY_SPAWN_INTERVAL_MS = 300; // fast spawn
+  const GAME_LENGTH_SEC = 180;
   const COUNTDOWN_SEC = 3;
   const QUALTRICS_BASE_URL = "https://ufl.qualtrics.com/jfe/form/SV_3r9mYZ6jgxzxbsa";
 
