@@ -142,6 +142,10 @@
   const COUNTDOWN_SEC = 3;
   const QUALTRICS_BASE_URL = "https://ufl.qualtrics.com/jfe/form/SV_3r9mYZ6jgxzxbsa";
 
+  // Get participant ID passed in from Part 1 Qualtrics
+  const incomingParams = new URLSearchParams(window.location.search);
+  const participantId = incomingParams.get('id') || '';
+  
   // Berry expiry
   const BERRY_MIN_TTL = 20;  // seconds
   const BERRY_MAX_TTL = 40;  // seconds
@@ -898,6 +902,7 @@ bot.workUntil = performance.now() + randInt(4000,8000);
   toSurveyBtn.addEventListener('click', () => {
     if (!toSurveyBtn.classList.contains('show')) return;
     const params = new URLSearchParams({
+      id: participantId,
       condition: condition || '',
       player_orange: player.orange.toString(),
       player_purple: player.purple.toString(),
