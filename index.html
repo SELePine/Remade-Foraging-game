@@ -87,7 +87,17 @@
       <div id="overlayMsg"></div>
     </div>
   </div>
-
+<!-- Ready Screen -->
+<div id="readyScreen" class="screen hidden">
+  <div class="panel">
+    <div class="column center">
+      <h1>STOP!</h1>
+      <p><strong>Please let the experimenter know that you are ready to begin.</strong></p>
+      <p>Do not click the PLAY button until the experimenter tells you to.</p>
+      <button id="playBtn">PLAY</button>
+    </div>
+  </div>
+</div>
   <!-- End Screen -->
   <div id="endScreen" class="screen hidden">
     <div id="endWrap">
@@ -161,6 +171,8 @@
   const introScreen = document.getElementById('introScreen');
   const startTutorialBtn = document.getElementById('startTutorialBtn');
   const gameScreen = document.getElementById('gameScreen');
+  const readyScreen = document.getElementById('readyScreen');
+  const playBtn = document.getElementById('playBtn');
   const arenaWrap = document.getElementById('arenaWrap');
   const arena = document.getElementById('arena');
   const hud = document.getElementById('hud');
@@ -399,9 +411,7 @@ function playerTotalBerries(){
     if (k==='d') keys.d = down;
     if (k===' ') keys.space = down;
 
-    if (state === 'tutorial_ready' && down && k===' '){
-      startGame();
-    }
+
   }
   window.addEventListener('keydown', e => onKey(e,true));
   window.addEventListener('keyup', e => onKey(e,false));
@@ -718,7 +728,7 @@ const noise = 0.06;
     const dt = Math.min(0.05, (ts - lastTime)/1000);
     lastTime = ts;
 
-    if (state === 'tutorial_move' || state === 'tutorial_collect' || state === 'tutorial_ready' || state === 'playing'){
+    if (state === 'tutorial_move' || state === 'tutorial_collect' || state === 'playing'){
       updatePositions(dt);
     }
 
@@ -726,12 +736,21 @@ const noise = 0.06;
       if (player.movedDist > 40){
         startTutorialCollect();
       }
-    } else if (state === 'tutorial_collect'){
-      if (player.purple >= 1){
-        showBanner('Great! Press SPACE to begin the real game.');
-        state = 'tutorial_ready';
-      }
-    }
+} else if (state === 'tutorial_collect'){
+  if (player.purple >= 1){
+    state = 'ready_waiting';
+
+    // Stop movement while waiting for the experimenter
+    keys.w = false;
+    keys.a = false;
+    keys.s = false;
+    keys.d = false;
+    keys.space = false;
+
+    hide(gameScreen);
+    show(readyScreen);
+  }
+}
 
     rafId = requestAnimationFrame(gameLoop);
   }
@@ -743,7 +762,13 @@ const noise = 0.06;
     show(gameScreen);
     startTutorial();
   });
+playBtn.addEventListener('click', () => {
+  if (state !== 'ready_waiting') return;
 
+  hide(readyScreen);
+  show(gameScreen);
+  startGame();
+});
   function resetEntities(){
     arena.innerHTML = '';
     arena.appendChild(hud);
